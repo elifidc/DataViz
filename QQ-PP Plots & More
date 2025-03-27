@@ -1,0 +1,161 @@
+---
+title: "HW3-DV-Elif-Yildirim"
+output: pdf_document
+date: "2025-03-14"
+---
+
+```{r}
+library(tidyverse)
+library(ggplot2)
+library(stringr)
+library(scales)
+
+adv <- read_csv("~/Desktop/Statistics II/Advertising.csv")
+adv_lm <- lm(sales ~ radio, data=adv)
+
+residuals <- resid(adv_lm)  
+residuals_df <- data.frame(residuals = residuals) 
+
+
+ggplot(data = data.frame(residuals_df), aes(x = residuals)) +
+  geom_histogram(aes(y = ..density..), bins = 30, fill = "grey", color = "black") +
+  geom_density(color = "red", size = 1) +
+  labs(title = "Histogram of Residuals w/ Density Curve",
+       x = "Residuals",
+       y = "Density")
+
+```
+
+
+
+```{r}
+
+par(mfrow = c(2, 1))
+
+hist(residuals, breaks = 30, main = "Histogram of Residuals", xlab = "Residuals",
+     col = "lightblue", border = "black", probability = TRUE)
+
+dens <- density(residuals, na.rm = TRUE)
+lines(dens, col = "red", lwd = 2)  
+
+boxplot(residuals, horizontal = TRUE, col = "lightblue", main = "Boxplot of Residuals")
+
+par(mfrow = c(1, 1))
+
+```
+
+
+```{r}
+qqnorm(residuals, main = "P-P Plot of Residuals")
+qqline(residuals, col = "red", lwd = 2)
+```
+
+```{r}
+qqnorm(residuals, main = "Q-Q Plot of Residuals")
+qqline(residuals, col = "red", lwd = 2)
+```
+
+```{r}
+lc_df <- read_csv("/Users/elifyildirim/Desktop/Data Visualization/accepted_2007_to_2018Q4 2.csv")
+head(lc_df)
+```
+
+
+
+```{r}
+
+#Filtering out NAs and "Other" responses for less clutter and to isolate the main categories of home ownership & getting rid of "other" column
+lc_df_clean <- lc_df %>%
+  mutate(
+    purpose = as.factor(purpose),
+    home_ownership = as.factor(home_ownership)
+  ) %>%
+  filter(home_ownership %in% c("RENT", "OWN", "MORTGAGE"))%>%
+  filter(purpose != "other")
+
+
+
+
+
+ggplot(lc_df_clean, aes(x = purpose, fill = home_ownership)) + 
+  geom_bar(position = "fill") +  
+  scale_fill_brewer(palette = "Blues") +
+  labs(title = "Loan Purpose by Home Ownership",
+       x = "Loan Purpose",
+       y = "Proportion",
+       fill = "Home Ownership") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1, size = 10)) 
+
+
+
+```
+
+
+This bar chart visualizes the proportion of loan purposes by home ownership status. The home ownership category was consolidated into Rent, Own, and Mortgage. Each bar represents a different loan purpose, and the stacks within the bars show the distribution of borrowers based on their home ownership status. The distribution of renters across loan purposes is, in very loose terms, steady, at about 40-50% of each purpose, with the exception of moving.  The chart shows that renters are more likely to take out loans for moving, compared to home/mortage owners. In contrast, mortgage owners dominate one category in particular, home improvements. Overall, this graph highlights how homeownership status may influence borrowing behavior.
+
+
+
+```{r}
+
+
+
+
+#Loan purposes v Loan amount was too cluttered, extracting top 5 purposes
+top_purposes <- lc_df_clean %>%
+  count(purpose, sort = TRUE) %>%
+  top_n(5, n) %>%
+  pull(purpose)  
+
+lc_df_top5 <- lc_df_clean %>%
+  filter(purpose %in% top_purposes)
+
+lc_df_top5 <- lc_df_top5 %>%
+  mutate(purpose = str_replace_all(purpose, "_", " ") %>% str_to_title())
+
+
+
+
+ggplot(lc_df_top5, aes(x = purpose, y = loan_amnt / 1000, fill = purpose)) + 
+  geom_boxplot() +  
+  scale_fill_brewer(palette = "Blues")  +
+  scale_y_continuous(labels = scales::comma, breaks = seq(0, 40, by = 5)) +  
+  labs(title = "Loan Amount Distribution of Top 5 Loan Purposes",
+       x = "Loan Purpose",
+       y = "Loan Amount ($K)") +
+  theme_minimal() +
+  coord_flip()
+
+
+```
+
+
+This boxplot shows the distribution of loan amounts for the top five most common loan purposes.Each box represents the IQR, showing where the middle 50% of loan amounts fall, and whiskers extend to the minimum and maximum values within the given IQR*1.5 range. 
+Medical has the smallest range of loan amounts, but an overwhelming amount of outliers, represented by individual points. Home improvement and Major Purchase have a slightly wider spread than debt consolidation and credit card. The most interesting part of this visual for me are the outliers in Medical. These represent loan amounts funded that are significantly greater than average amounts. While all the loan purposes contain outliers, Medical contains significantly more. This may indicate that a subset of medical borrowers require larger loans to cover high medical costs. 
+
+
+```{r}
+library(ggrepel)
+set.seed(1515)  
+lc_sample <- lc_df %>% sample_n(10000)  
+
+
+ggplot(lc_sample, aes(x = loan_amnt, y = installment, color = as.character(term))) +  
+  geom_point(alpha = 0.4) +  
+  geom_smooth(method = "lm", se = FALSE) +  
+  scale_color_manual(values = c("36 months" = "blue", "60 months" = "red")) +  
+  scale_x_continuous(labels = scales::comma) +
+  scale_y_continuous(labels = scales::comma) +  
+  labs(title = "Monthly Installment vs. Loan Amount",
+       x = "Loan Amount ($)",
+       y = "Monthly Installment ($)",
+       color = "Loan Term (Months)") +
+  theme_minimal()
+
+
+```
+My scatterplot visualizes the relationship between loan amount and monthly installment, colored by loan term. When I initially created the graph without the loan term categorization, it appeared that the somewhat linear relationship divereged at some point, which is why I colored by loan term and uncovered this trend. Loan amount and monthly installment have a strong positive relationship, meaning the higher loan you take out, the high monthly installment you will have. When looking at the difference across loan term, we can see that shorter-term loans (36 months), have a higher monthly installment, which is consistent with the fact that they have to pay their loans off faster. We do notice a few points that fall below the trend lines, indicating there is a very small amount of people that may be getting lower monthly installments.
+
+
+
+
