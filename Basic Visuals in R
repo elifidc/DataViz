@@ -1,0 +1,66 @@
+title: "DataViz-HW2-Elif-Yildirim"
+output: pdf_document
+date: "2025-02-26"
+---
+
+```{r}
+library(ggplot2)
+library(dplyr)
+library(data.table)
+
+#Loading in lending club data
+
+lc<- read.csv("~/Desktop/Data Visualization/accepted_2007_to_2018Q4 2.csv", nrows = 500)
+lc <- as.data.frame(lc)
+#head(lc)
+dim(lc)
+
+```
+
+
+
+```{r}
+#summary(lc)
+#glimpse(lc)
+
+#Commented these out to avoid extraordinarily long output when knit
+
+```
+
+
+```{r}
+table(lc$purpose)
+```
+
+
+```{r}
+purpose_data <- fread("~/Desktop/Data Visualization/accepted_2007_to_2018Q4 2.csv", select = "purpose")
+head(purpose_data)
+dim(purpose_data)
+```
+
+```{r}
+purpose_counts <- table(purpose_data)  
+
+purpose_percent <- prop.table(purpose_counts) * 100  
+
+
+purpose_counts <- as.data.frame(purpose_counts)
+colnames(purpose_counts) <- c("Purpose", "Frequency")
+
+
+#Needed GPT to debug the factor ordering code below
+purpose_counts$Purpose <- factor(purpose_counts$Purpose, levels = purpose_counts$Purpose[order(-purpose_counts$Frequency)])
+
+
+viz1 <- ggplot(data = purpose_counts, aes(x = Purpose, y = Frequency)) +
+  geom_bar(stat = "identity", fill = "skyblue", color = "black") +
+  labs(title = "Distribution of Lending Club Loan Purposes",
+       x = "Purpose",
+       y = "Count") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+print(viz1)
+
+```
